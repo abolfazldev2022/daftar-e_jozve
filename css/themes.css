@@ -1,0 +1,50 @@
+/* themes.css — color tokens for light and dark modes.
+   Design direction: an academic "notebook" feel — warm paper in light mode,
+   an ink-slate page at night — with a single chalkboard-teal accent used
+   sparingly (the record button, active states, links). No generic SaaS-card
+   grey shadows; structure comes from a left "spine" accent bar instead. */
+
+:root,
+[data-theme="light"] {
+  --color-bg: #FAF7F1;
+  --color-surface: #FFFFFF;
+  --color-surface-raised: #FFFFFF;
+  --color-ink: #23241F;
+  --color-ink-soft: #5B5A52;
+  --color-border: #E7E1D3;
+  --color-accent: #2F6F5E;
+  --color-accent-soft: #E4F0EC;
+  --color-accent-contrast: #FFFFFF;
+  --color-danger: #B4432F;
+  --color-danger-soft: #FBEAE6;
+  --color-warning-bg: #FBF3E1;
+  --color-warning-text: #8A5A15;
+  --color-success: #2F6F5E;
+  --shadow-card: 0 1px 2px rgba(35, 36, 31, 0.06);
+  --color-highlight-important: #F6D9A0;
+  --color-highlight-tip: #C7E3DA;
+  --color-highlight-question: #DCD0EE;
+  --color-highlight-reminder: #F4C6C0;
+}
+
+[data-theme="dark"] {
+  --color-bg: #171A17;
+  --color-surface: #1F231F;
+  --color-surface-raised: #262B26;
+  --color-ink: #ECE9E1;
+  --color-ink-soft: #A9A79C;
+  --color-border: #333830;
+  --color-accent: #4F9C86;
+  --color-accent-soft: #22332D;
+  --color-accent-contrast: #0E1210;
+  --color-danger: #D97862;
+  --color-danger-soft: #3A211C;
+  --color-warning-bg: #3A3220;
+  --color-warning-text: #E2B96B;
+  --color-success: #4F9C86;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --color-highlight-important: #6B5726;
+  --color-highlight-tip: #274B41;
+  --color-highlight-question: #3D3358;
+  --color-highlight-reminder: #4F2E2A;
+}

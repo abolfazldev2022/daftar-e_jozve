@@ -1,0 +1,49 @@
+/* responsive.css — mobile is the default in style.css; this file adds
+   comfort at wider viewports (tablets, laptops, desktops). */
+
+@media (min-width: 640px) {
+  .view-root { padding: 28px 24px 60px; }
+  .stat-grid { gap: 14px; }
+  .attachment-add-row .btn { flex: 0 0 auto; }
+}
+
+@media (min-width: 900px) {
+  body { padding-bottom: 0; }
+  .app-header { padding: 16px 32px; }
+  .view-root { max-width: 860px; padding: 32px 24px 60px; }
+  .search-bar, .search-results { top: 0; }
+  .app-header-actions { gap: 10px; }
+
+  /* Convert the bottom tab bar into a slim top strip under the header instead
+     of hiding navigation on larger screens. */
+  .bottom-nav {
+    display: flex;
+    position: static;
+    border-top: none;
+    border-bottom: 1px solid var(--color-border);
+    max-width: 860px;
+    margin: 0 auto;
+    background: transparent;
+  }
+  .bottom-nav-btn {
+    flex-direction: row;
+    gap: 6px;
+    padding: 12px 16px;
+    flex: 0 0 auto;
+  }
+}
+
+@media (min-width: 1200px) {
+  .view-root { max-width: 960px; }
+}
+
+/* Larger, easier-to-hit touch targets on small phones during class use */
+@media (max-width: 380px) {
+  .record-btn { width: 64px; height: 64px; font-size: 1.6rem; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recorder-panel--active .record-btn { animation: none; }
+  .btn, .toast, .dialog-overlay { transition: none; }
+}
