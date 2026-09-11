@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>دفتر جزوه</title>
+<meta name="description" content="دفتر جزوهٔ دیجیتال دانشگاهی — یادداشت‌برداری و ضبط صدای کلاس، کاملاً آفلاین">
+<meta name="theme-color" content="#2F6F5E">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/themes.css">
+<link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-brand">
+    <span class="app-logo" aria-hidden="true">📔</span>
+    <h1>دفتر جزوه</h1>
+  </div>
+  <div class="app-header-actions">
+    <button type="button" id="search-toggle" class="icon-btn" title="جستجو" aria-label="جستجو">🔍</button>
+    <button type="button" id="theme-toggle" class="icon-btn" title="حالت روشن/تاریک" aria-label="تغییر پوسته">🌙</button>
+    <span id="connection-status" class="status status--online" role="status">
+      <span class="status-dot">🟢</span>
+      <span class="status-label">آنلاین</span>
+    </span>
+  </div>
+</header>
+
+<div id="search-bar" class="search-bar search-bar--hidden">
+  <input type="search" id="search-input" placeholder="جستجو در درس‌ها، جلسات و یادداشت‌ها…" aria-label="جستجو">
+  <button type="button" id="search-close" class="icon-btn" aria-label="بستن جستجو">✕</button>
+</div>
+<div id="search-results" class="search-results search-results--hidden"></div>
+
+<main id="view-root" class="view-root">
+  <!-- Views are rendered dynamically by app.js -->
+</main>
+
+<nav class="bottom-nav">
+  <button type="button" class="bottom-nav-btn" data-nav="dashboard" aria-label="داشبورد">
+    <span>🏠</span><small>خانه</small>
+  </button>
+  <button type="button" class="bottom-nav-btn" data-nav="backup" aria-label="پشتیبان‌گیری">
+    <span>💾</span><small>پشتیبان</small>
+  </button>
+  <button type="button" class="bottom-nav-btn" data-nav="storage" aria-label="فضای ذخیره‌سازی">
+    <span>📊</span><small>فضا</small>
+  </button>
+  <button type="button" class="bottom-nav-btn" data-nav="settings" aria-label="تنظیمات">
+    <span>⚙️</span><small>تنظیمات</small>
+  </button>
+</nav>
+
+<div id="update-banner" class="update-banner update-banner--hidden">
+  <span>نسخهٔ جدیدی از برنامه موجود است.</span>
+  <button type="button" id="update-reload-btn" class="btn btn--primary btn--small">بروزرسانی</button>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
