@@ -2,6 +2,7 @@
 // Runs entirely in-memory against data already loaded from IndexedDB; no server involved.
 
 import DB from './db.js';
+import { htmlToPlainText } from './utils.js';
 
 function excerptAround(text, query, radius = 40) {
   const idx = text.toLowerCase().indexOf(query.toLowerCase());
@@ -32,8 +33,14 @@ export async function searchAll(query) {
 
   for (const session of sessions) {
     const course = courseById.get(session.courseId);
+    // Derive plain text from the saved HTML at search time rather than
+    // trusting the stored notesPlainText field: that field may have been
+    // written before the block-boundary whitespace fix in htmlToPlainText()
+    // (utils.js), so relying on it here could still show the old
+    // words-glued-together bug for sessions saved before the fix.
+    const plainText = htmlToPlainText(session.notesHTML || '');
     const titleMatch = (session.title || '').toLowerCase().includes(qLower);
-    const notesMatch = (session.notesPlainText || '').toLowerCase().includes(qLower);
+    const notesMatch = plainText.toLowerCase().includes(qLower);
     if (titleMatch || notesMatch) {
       results.push({
         type: 'session',
@@ -41,7 +48,7 @@ export async function searchAll(query) {
         courseName: course ? course.name : 'درس حذف‌شده',
         sessionId: session.id,
         sessionTitle: session.title,
-        context: notesMatch ? excerptAround(session.notesPlainText, q) : (session.description || '')
+        context: notesMatch ? excerptAround(plainText, q) : (session.description || '')
       });
     }
   }
