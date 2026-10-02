@@ -10,7 +10,7 @@ import { SessionRecorder, isRecordingSupported, deleteSessionRecording, Recorder
 import * as Attachments from './attachments.js';
 import * as Backup from './backup.js';
 import { searchAll } from './search.js';
-import { requestPersistence, estimateStorage, storageBreakdown, sortItems, formatBytes } from './storage.js';
+import { requestPersistence, isStoragePersisted, estimateStorage, storageBreakdown, sortItems, formatBytes } from './storage.js';
 import { formatDuration, toPersianDigits, sanitizeFilename, extensionForMime, nowISO } from './utils.js';
 import { VERSION, CHANGELOG } from './version.js';
 
@@ -585,22 +585,57 @@ function breakdownRow(label, bytes) {
 async function renderSettingsView(root) {
   root.appendChild(el('h2', {}, '⚙️ تنظیمات'));
 
-  const themeRow = el('div', { class: 'settings-row' }, [
+  // ---- Theme: one combined ☀️/🌙 switch instead of a separate button ----
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+  const themeSwitch = el('button', {
+    type: 'button',
+    id: 'settings-theme-switch',
+    class: 'theme-switch',
+    role: 'switch',
+    'aria-checked': String(currentTheme === 'dark'),
+    'aria-label': 'تغییر بین پوستهٔ روشن و تاریک'
+  }, [
+    el('span', { class: 'theme-switch-icon', 'aria-hidden': 'true' }, '☀️'),
+    el('span', { class: 'theme-switch-track' }, [el('span', { class: 'theme-switch-thumb' })]),
+    el('span', { class: 'theme-switch-icon', 'aria-hidden': 'true' }, '🌙')
+  ]);
+  root.appendChild(el('div', { class: 'settings-row' }, [
     el('span', {}, 'پوستهٔ برنامه'),
-    el('button', { type: 'button', class: 'btn btn--ghost', id: 'settings-theme-btn' }, 'تغییر روشن/تاریک')
-  ]);
-  root.appendChild(themeRow);
-  document.getElementById('settings-theme-btn').addEventListener('click', () => toggleTheme());
-
-  const persistRow = el('div', { class: 'settings-row' }, [
-    el('span', {}, 'ذخیره‌سازی پایدار'),
-    el('button', { type: 'button', class: 'btn btn--ghost', id: 'persist-btn' }, 'درخواست ذخیره‌سازی پایدار')
-  ]);
-  root.appendChild(persistRow);
-  document.getElementById('persist-btn').addEventListener('click', async () => {
-    const granted = await requestPersistence();
-    showToast(granted ? 'ذخیره‌سازی پایدار فعال شد' : 'این مرورگر این قابلیت را پشتیبانی نمی‌کند یا رد شد', granted ? 'success' : 'info');
+    themeSwitch
+  ]));
+  themeSwitch.addEventListener('click', async () => {
+    const next = await toggleTheme();
+    syncThemeControls(next);
   });
+
+  // ---- Persistent storage: plain explanation + honest status (no fake "disable") ----
+  const persisted = await isStoragePersisted();
+  const persistRow = el('div', { class: 'settings-row' }, [el('span', {}, 'ذخیره‌سازی پایدار')]);
+  if (persisted) {
+    persistRow.appendChild(el('span', { class: 'status status--online' }, [
+      el('span', {}, '🟢'),
+      el('span', { class: 'status-label' }, 'فعال است')
+    ]));
+  } else {
+    persistRow.appendChild(el('button', { type: 'button', class: 'btn btn--ghost', id: 'persist-btn' }, 'فعال‌سازی ذخیره‌سازی پایدار'));
+  }
+  root.appendChild(persistRow);
+  root.appendChild(el('p', { class: 'empty-state-sub' },
+    'با فعال کردن این گزینه، از مرورگر خواسته می‌شود اطلاعات و یادداشت‌های شما را کمتر در معرض پاک شدن خودکار (مثلاً هنگام کمبود فضای دستگاه) قرار دهد. این یک تضمین صددرصدی نیست، ولی احتمال از‌دست‌رفتن اطلاعات را کم می‌کند.'));
+  if (!persisted) {
+    document.getElementById('persist-btn').addEventListener('click', async (e) => {
+      const granted = await requestPersistence();
+      if (granted) {
+        e.target.replaceWith(el('span', { class: 'status status--online' }, [
+          el('span', {}, '🟢'),
+          el('span', { class: 'status-label' }, 'فعال است')
+        ]));
+        showToast('ذخیره‌سازی پایدار فعال شد', 'success');
+      } else {
+        showToast('این مرورگر این قابلیت را پشتیبانی نمی‌کند یا درخواست رد شد', 'info');
+      }
+    });
+  }
 
   root.appendChild(el('div', { class: 'settings-row' }, [
     el('span', {}, 'دربارهٔ برنامه'),
@@ -612,67 +647,150 @@ async function renderSettingsView(root) {
     el('span', { class: 'empty-state-sub' }, `v${toPersianDigits(VERSION)}`)
   ]));
 
-  const changelogToggleBtn = el('button', { type: 'button', class: 'btn btn--ghost', id: 'changelog-toggle-btn' }, '📋 مشاهدهٔ تاریخچهٔ تغییرات');
-  const changelogBody = el('div', { id: 'changelog-body', hidden: 'true' });
-  root.appendChild(changelogToggleBtn);
-  root.appendChild(changelogBody);
-
-  changelogToggleBtn.addEventListener('click', () => {
-    const isHidden = changelogBody.hidden;
-    if (isHidden) {
-      changelogBody.innerHTML = '';
-      CHANGELOG.forEach((entry) => {
-        changelogBody.appendChild(el('h4', { class: 'subsection-title' }, `نسخهٔ ${toPersianDigits(entry.version)} — ${toPersianDigits(entry.date)}`));
-        entry.notes.forEach((note) => {
-          changelogBody.appendChild(el('p', { class: 'empty-state-sub' }, `• ${note}`));
-        });
-      });
-      changelogToggleBtn.textContent = '📋 بستن تاریخچهٔ تغییرات';
-    } else {
-      changelogToggleBtn.textContent = '📋 مشاهدهٔ تاریخچهٔ تغییرات';
-    }
-    changelogBody.hidden = !isHidden;
+  // ---- Changelog: always shown directly (no toggle button), plain language,
+  // with the entries the user hasn't "aged past" yet (7 days from first seen
+  // on this device) marked as new. ----
+  root.appendChild(el('h3', { class: 'subsection-title' }, '🗒️ تازه‌های برنامه'));
+  const { newVersions } = getRecentChangelogWindow();
+  CHANGELOG.forEach((entry) => {
+    const isNew = newVersions.has(entry.version);
+    root.appendChild(el('p', {}, [
+      isNew ? el('strong', {}, '🆕 ') : null,
+      el('strong', {}, `نسخهٔ ${toPersianDigits(entry.version)}`)
+    ]));
+    entry.notes.forEach((note) => {
+      root.appendChild(el('p', { class: 'empty-state-sub' }, `• ${note}`));
+    });
   });
+}
+
+// ---------- Theme icon/switch sync (header icon + Settings switch) ----------
+
+function syncThemeControls(theme) {
+  const isDark = theme === 'dark';
+  const headerBtn = document.getElementById('theme-toggle');
+  if (headerBtn) {
+    headerBtn.textContent = isDark ? '🌙' : '☀️';
+    const label = isDark ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک';
+    headerBtn.title = label;
+    headerBtn.setAttribute('aria-label', label);
+  }
+  const settingsSwitch = document.getElementById('settings-theme-switch');
+  if (settingsSwitch) settingsSwitch.setAttribute('aria-checked', String(isDark));
+}
+
+// ---------- "What's new" tracking (per-device, via localStorage) ----------
+// Keys are independent of everything else in the app — purely for deciding
+// whether to show a one-time "new version" toast and a 7-day "🆕" mark next
+// to recent Changelog entries in Settings. Never touches IndexedDB/schema.
+const WHATS_NEW_KEYS = {
+  lastSeenVersion: 'dj.lastSeenVersion',
+  lastSeenAt: 'dj.lastSeenVersionAt',
+  prevVersion: 'dj.versionBeforeLastUpdate'
+};
+const WHATS_NEW_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Call once per boot. Detects a version change on THIS device and, if this
+ * isn't the user's very first-ever run, shows a one-time toast pointing to
+ * Settings. Safe if localStorage is unavailable (private browsing, etc.). */
+function checkForVersionUpdate() {
+  let lastSeen = null;
+  try { lastSeen = localStorage.getItem(WHATS_NEW_KEYS.lastSeenVersion); } catch (e) { return; }
+  if (lastSeen === VERSION) return; // nothing changed since last visit
+  try {
+    if (lastSeen !== null) localStorage.setItem(WHATS_NEW_KEYS.prevVersion, lastSeen);
+    localStorage.setItem(WHATS_NEW_KEYS.lastSeenVersion, VERSION);
+    localStorage.setItem(WHATS_NEW_KEYS.lastSeenAt, new Date().toISOString());
+  } catch (e) { /* ignore — storage may be full/disabled */ }
+  if (lastSeen !== null) {
+    showToast('نسخهٔ جدید برنامه نصب شد؛ تازه‌های آن را در «تنظیمات» ببینید', 'info');
+  }
+}
+
+/** Which CHANGELOG versions should still carry a "🆕" mark right now. */
+function getRecentChangelogWindow() {
+  let seenAt, prevVersion;
+  try {
+    seenAt = localStorage.getItem(WHATS_NEW_KEYS.lastSeenAt);
+    prevVersion = localStorage.getItem(WHATS_NEW_KEYS.prevVersion);
+  } catch (e) { return { newVersions: new Set() }; }
+  if (!seenAt) return { newVersions: new Set() };
+  const seenTime = new Date(seenAt).getTime();
+  if (Number.isNaN(seenTime) || Date.now() - seenTime >= WHATS_NEW_WINDOW_MS) return { newVersions: new Set() };
+
+  let newEntries;
+  if (prevVersion) {
+    const idx = CHANGELOG.findIndex((e) => e.version === prevVersion);
+    // Everything listed BEFORE prevVersion in the (newest-first) array is
+    // newer than what the user had, i.e. covers however many versions they
+    // skipped — not just the single latest one.
+    newEntries = idx === -1 ? CHANGELOG.slice(0, 1) : CHANGELOG.slice(0, idx);
+  } else {
+    newEntries = CHANGELOG.slice(0, 1);
+  }
+  return { newVersions: new Set(newEntries.map((e) => e.version)) };
 }
 
 // ---------- Search ----------
 
 function initSearch() {
   const toggleBtn = document.getElementById('search-toggle');
-  const closeBtn = document.getElementById('search-close');
-  const bar = document.getElementById('search-bar');
+  const anchor = document.querySelector('.search-popover-anchor');
+  const popover = document.getElementById('search-popover');
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
 
+  const positionPopover = () => {
+    const margin = 10;
+    const rect = toggleBtn.getBoundingClientRect();
+    const popWidth = popover.offsetWidth || 340;
+    // Align the popover's right edge with the icon's by default, but clamp
+    // so it always stays fully within the viewport regardless of screen size.
+    let left = rect.right - popWidth;
+    left = Math.max(margin, Math.min(left, window.innerWidth - popWidth - margin));
+    popover.style.top = `${Math.round(rect.bottom + 8)}px`;
+    popover.style.left = `${Math.round(left)}px`;
+  };
+
+  const isOpen = () => !popover.classList.contains('search-popover--hidden');
   const openSearch = () => {
-    bar.classList.remove('search-bar--hidden');
+    popover.classList.remove('search-popover--hidden');
+    positionPopover();
     input.focus();
   };
   const closeSearch = () => {
-    bar.classList.add('search-bar--hidden');
-    resultsEl.classList.add('search-results--hidden');
+    popover.classList.add('search-popover--hidden');
     resultsEl.innerHTML = '';
     input.value = '';
   };
 
-  toggleBtn.addEventListener('click', openSearch);
-  closeBtn.addEventListener('click', closeSearch);
+  toggleBtn.addEventListener('click', () => {
+    if (isOpen()) closeSearch();
+    else openSearch();
+  });
+
+  // Close when clicking anywhere outside the search icon/popover, and on Escape.
+  document.addEventListener('click', (e) => {
+    if (isOpen() && !anchor.contains(e.target)) closeSearch();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen()) closeSearch();
+  });
 
   let debounceTimer;
   input.addEventListener('input', () => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
       const q = input.value.trim();
-      if (!q) { resultsEl.classList.add('search-results--hidden'); resultsEl.innerHTML = ''; return; }
+      if (!q) { resultsEl.innerHTML = ''; return; }
       const results = await searchAll(q);
-      renderSearchResults(resultsEl, results);
+      renderSearchResults(resultsEl, results, closeSearch);
     }, 250);
   });
 }
 
-function renderSearchResults(container, results) {
+function renderSearchResults(container, results, closeSearch) {
   container.innerHTML = '';
-  container.classList.remove('search-results--hidden');
   if (results.length === 0) {
     container.appendChild(el('p', { class: 'empty-state-sub' }, 'نتیجه‌ای یافت نشد.'));
     return;
@@ -684,7 +802,7 @@ function renderSearchResults(container, results) {
       r.context ? el('p', { class: 'search-result-context' }, r.context) : null
     ]);
     row.addEventListener('click', () => {
-      document.getElementById('search-close').click();
+      closeSearch();
       if (r.type === 'course') navigate('course', { id: r.courseId });
       else navigate('session', { id: r.sessionId });
     });
@@ -711,7 +829,11 @@ function initBottomNav() {
 // ---------- Theme toggle button ----------
 
 function initThemeToggle() {
-  document.getElementById('theme-toggle').addEventListener('click', () => toggleTheme());
+  syncThemeControls(document.documentElement.getAttribute('data-theme') || 'light');
+  document.getElementById('theme-toggle').addEventListener('click', async () => {
+    const next = await toggleTheme();
+    syncThemeControls(next);
+  });
 }
 
 // ---------- Service worker registration + update flow ----------
@@ -769,6 +891,7 @@ function showUpdateBanner(worker) {
 async function boot() {
   await initTheme();
   await requestPersistence();
+  checkForVersionUpdate();
   initConnectionStatus();
   initBottomNav();
   initThemeToggle();
