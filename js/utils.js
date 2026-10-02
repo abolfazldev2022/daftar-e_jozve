@@ -227,10 +227,38 @@ export function sanitizeHTML(html) {
   return template.innerHTML;
 }
 
+// Block-level elements whose boundaries must become whitespace when flattened
+// to plain text — otherwise e.g. "<div>درس</div><div>اینترنت</div>" (two
+// separate lines in the editor) collapses into "درساینترنت" via a plain
+// .textContent read, since textContent inserts no whitespace at element
+// boundaries on its own.
+const BLOCK_TAGS_FOR_PLAIN_TEXT = new Set(['P', 'DIV', 'LI', 'BLOCKQUOTE', 'H1', 'H2', 'H3', 'UL', 'OL', 'HR']);
+
 export function htmlToPlainText(html) {
-  const div = document.createElement('div');
-  div.innerHTML = html || '';
-  return (div.textContent || '').replace(/\s+/g, ' ').trim();
+  const container = document.createElement('div');
+  container.innerHTML = html || '';
+  const parts = [];
+  const walk = (node) => {
+    for (const child of node.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        parts.push(child.textContent);
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        if (child.tagName === 'BR') { parts.push(' '); continue; }
+        // A separator is needed on BOTH sides of a block element's content —
+        // not just after it. A line typed before the user's first Enter press
+        // is often a bare text node with no wrapping element at all (e.g.
+        // "درس" + "<div>اینترنت...</div>"), so adding the space only after
+        // the block (the previous attempt) left it glued to whatever came
+        // right before the block.
+        const isBlock = BLOCK_TAGS_FOR_PLAIN_TEXT.has(child.tagName);
+        if (isBlock) parts.push(' ');
+        walk(child);
+        if (isBlock) parts.push(' ');
+      }
+    }
+  };
+  walk(container);
+  return parts.join('').replace(/\s+/g, ' ').trim();
 }
 
 export function escapeHTML(str) {
