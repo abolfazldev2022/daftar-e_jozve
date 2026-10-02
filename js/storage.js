@@ -14,6 +14,18 @@ export async function requestPersistence() {
   return false;
 }
 
+/** Read-only check — does NOT request anything, just reports current status. */
+export async function isStoragePersisted() {
+  if (navigator.storage && navigator.storage.persisted) {
+    try {
+      return await navigator.storage.persisted();
+    } catch (e) {
+      return false;
+    }
+  }
+  return false;
+}
+
 export async function estimateStorage() {
   if (navigator.storage && navigator.storage.estimate) {
     try {
