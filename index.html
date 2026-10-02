@@ -21,7 +21,13 @@
     <h1>دفتر جزوه</h1>
   </div>
   <div class="app-header-actions">
-    <button type="button" id="search-toggle" class="icon-btn" title="جستجو" aria-label="جستجو">🔍</button>
+    <div class="search-popover-anchor">
+      <button type="button" id="search-toggle" class="icon-btn" title="جستجو" aria-label="جستجو">🔍</button>
+      <div id="search-popover" class="search-popover search-popover--hidden">
+        <input type="search" id="search-input" placeholder="جستجو در درس‌ها، جلسات و یادداشت‌ها…" aria-label="جستجو">
+        <div id="search-results" class="search-results"></div>
+      </div>
+    </div>
     <button type="button" id="theme-toggle" class="icon-btn" title="حالت روشن/تاریک" aria-label="تغییر پوسته">🌙</button>
     <span id="connection-status" class="status status--online" role="status">
       <span class="status-dot">🟢</span>
@@ -29,12 +35,6 @@
     </span>
   </div>
 </header>
-
-<div id="search-bar" class="search-bar search-bar--hidden">
-  <input type="search" id="search-input" placeholder="جستجو در درس‌ها، جلسات و یادداشت‌ها…" aria-label="جستجو">
-  <button type="button" id="search-close" class="icon-btn" aria-label="بستن جستجو">✕</button>
-</div>
-<div id="search-results" class="search-results search-results--hidden"></div>
 
 <main id="view-root" class="view-root">
   <!-- Views are rendered dynamically by app.js -->
